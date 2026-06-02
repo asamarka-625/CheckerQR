@@ -1,9 +1,13 @@
 # Внешние зависимости
 from typing import Annotated, List, Optional
+from zoneinfo import ZoneInfo
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 # Внутренние модули
 from web_app.src.schemas.participant import Participant
+
+
+MSK = ZoneInfo("Europe/Moscow")
 
 
 # Схема запроса на создание мероприятия
@@ -23,6 +27,13 @@ class CreateEventRequest(BaseModel):
 
         return v
 
+    @field_validator("start_datetime", "end_datetime")
+    @classmethod
+    def set_msk_timezone(cls, v: datetime):
+        if v.tzinfo is None:
+            return v.replace(tzinfo=MSK)
+        return v.astimezone(MSK)
+
     model_config = ConfigDict(
         str_strip_whitespace=True
     )
@@ -34,6 +45,14 @@ class UpdateEventRequest(BaseModel):
     start_datetime: Optional[datetime] = None
     end_datetime: Optional[datetime] = None
     access_users: Optional[List[int]] = None
+
+    @field_validator("start_datetime", "end_datetime")
+    @classmethod
+    def set_msk_timezone(cls, v: Optional[datetime]):
+        if v is not None:
+            if v.tzinfo is None:
+                return v.replace(tzinfo=MSK)
+            return v.astimezone(MSK)
 
     model_config = ConfigDict(
         str_strip_whitespace=True
