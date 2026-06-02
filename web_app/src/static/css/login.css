@@ -1,0 +1,41 @@
+.login-wrapper {
+    max-width: 400px;
+    margin: 80px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    margin-top: 15px;
+}
+
+.login-label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.login-form button {
+    padding: 10px;
+    background: #1677ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.login-form button:disabled {
+    opacity: 0.6;
+}

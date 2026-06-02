@@ -1,0 +1,1 @@
+from shared_services.work_with_redis import RedisService

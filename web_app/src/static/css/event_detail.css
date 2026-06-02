@@ -1,0 +1,295 @@
+.event-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.event-card,
+.participants-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 24px;
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.event-title {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.event-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #444;
+}
+
+.section-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.participants-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.participant-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.participant-left {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+}
+
+.participant-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.participant-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.participant-extra-info {
+    color: #555;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.participant-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.primary-btn,
+.secondary-btn,
+.danger-btn,
+.close-btn {
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.primary-btn {
+    background: #1677ff;
+    color: white;
+    padding: 12px 18px;
+}
+
+.primary-btn:hover {
+    opacity: 0.9;
+}
+
+.secondary-btn {
+    background: #eef2ff;
+    color: #1f3a8a;
+    padding: 10px 14px;
+}
+
+.secondary-btn:hover {
+    background: #dde6ff;
+}
+
+.danger-btn {
+    background: #fff1f2;
+    color: #b91c1c;
+    padding: 10px 14px;
+}
+
+.danger-btn:hover {
+    background: #ffe4e6;
+}
+
+.empty-state {
+    padding: 24px;
+    border-radius: 16px;
+    background: #f8fafc;
+    color: #64748b;
+    text-align: center;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+}
+
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.modal-content {
+    position: relative;
+    z-index: 1001;
+    width: min(520px, calc(100% - 24px));
+    margin: 80px auto;
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.close-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    background: #f3f4f6;
+}
+
+.modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d0d7e2;
+  border-radius: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#participantMessage .success,
+#participantMessage .error {
+    margin-top: 8px;
+}
+
+.field-error {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #cf1322;
+}
+
+.invalid-input {
+    border-color: #ff4d4f !important;
+}
+
+.participant-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border: 1px solid #000;
+}
+
+
+.participant-qr {
+    min-width: 120px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.participant-qr {
+    min-width: 120px;
+    min-height: 120px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    transition: transform 0.2s ease;
+}
+
+.participant-qr:hover {
+    transform: scale(1.05);
+}
+
+.qr-modal-content {
+    position: fixed;
+
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+
+    z-index: 1001;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 420px;
+    min-height: 420px;
+}
+
+#qrModalContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#qrModalContainer img {
+    width: 360px !important;
+    height: 360px !important;
+}
+
+.qr-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}

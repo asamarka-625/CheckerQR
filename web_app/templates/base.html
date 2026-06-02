@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}Мероприятия{% endblock %}
+    </title>
+
+    <link rel="stylesheet" href="/{{ prefix }}/static/css/base.css">
+
+    {% block styles %}{% endblock %}
+</head>
+<body>
+
+<header class="header">
+    <div class="container header-inner">
+        <h2 class="logo">Менеджмент мероприятий</h2>
+
+        <nav class="nav">
+            <a href="/{{ prefix }}/events" class="nav-link">
+                Мероприятия
+            </a>
+            <button type="button" class="nav-link logout-btn" id="logoutBtn">
+                Выйти
+            </button>
+        </nav>
+
+    </div>
+</header>
+
+<main class="main">
+    <div class="container">
+        {% block content %}{% endblock %}
+        <div id="message-overlay" class="hidden">
+            <div id="message-box"></div>
+        </div>
+    </div>
+</main>
+
+<script src="/{{ prefix }}/static/js/base.js"></script>
+<script src="/{{ prefix }}/static/js/auth.js"></script>
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

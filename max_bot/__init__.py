@@ -1,0 +1,1 @@
+from max_bot.main import main_run

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Мои мероприятия{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/{{ prefix }}/static/css/events.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="events-header">
+    <h1>Мои мероприятия</h1>
+    <a
+        href="/{{ prefix }}/create-event"
+        class="create-btn"
+    >
+        Создать мероприятие
+    </a>
+</div>
+
+{% if events %}
+    <div class="events-list">
+        {% for event in events %}
+            <div
+                class="event-card"
+                onclick="window.location.href='/{{ prefix }}/event/{{ event.event_id }}'"
+            >
+                <div class="event-main">
+                    <div class="event-title">
+                        {{ event.title }}
+                    </div>
+
+                    <div class="event-date">
+                        <div>
+                            <strong>Начало:</strong>
+                            {{ event.start_datetime.strftime('%d.%m.%Y %H:%M') }}
+                        </div>
+
+                        <div>
+                            <strong>Окончание:</strong>
+                            {{ event.end_datetime.strftime('%d.%m.%Y %H:%M') }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="event-actions">
+                    <a
+                        href="/{{ prefix }}/event/edit/{{ event.event_id }}"
+                        class="btn btn-edit"
+                        onclick="event.stopPropagation()"
+                    >
+                        Изменить
+                    </a>
+
+                    <button
+                        type="button"
+                        class="btn btn-delete"
+                        data-event-id="{{ event.event_id }}"
+                        onclick="event.stopPropagation()"
+                    >
+                        Удалить
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-events">
+        У вас пока нет мероприятий
+    </div>
+{% endif %}
+
+{% endblock %}

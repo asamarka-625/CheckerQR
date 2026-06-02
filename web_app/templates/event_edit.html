@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование мероприятия{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/{{ prefix }}/static/css/event_form.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+
+    <h1>Редактирование мероприятия</h1>
+
+    <div class="field">
+        <label>Название мероприятия</label>
+        <input type="text"
+               id="title"
+               value="{{ title }}"
+               placeholder="Введите название">
+    </div>
+
+    <div class="field">
+        <label>Дата начала</label>
+
+        <input type="date"
+               id="startDate"
+               value="{{ start_datetime.strftime('%Y-%m-%d') }}">
+
+        <div class="time-row">
+            <input type="time"
+                   id="startTime"
+                   value="{{ start_datetime.strftime('%H:%M') }}">
+        </div>
+    </div>
+
+    <div class="field">
+        <label>Дата окончания</label>
+
+        <input type="date"
+               id="endDate"
+               value="{{ end_datetime.strftime('%Y-%m-%d') }}">
+
+        <div class="time-row">
+            <input type="time"
+                   id="endTime"
+                   value="{{ end_datetime.strftime('%H:%M') }}">
+        </div>
+    </div>
+
+    <div class="field">
+        <label>Доступ пользователей</label>
+
+        <input
+            type="text"
+            id="userSearchInput"
+            placeholder="Поиск пользователей"
+        />
+
+        <div id="userSearchResults"></div>
+
+        <div id="selectedUsers" style="display: flex; gap: 6px; margin-top: 5px;"></div>
+    </div>
+
+    <button class="submit-btn"
+            id="saveBtn">
+        Сохранить изменения
+    </button>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    window.EVENT_ID = "{{ event_id }}";
+    window.EXISTING_ACCESS_USERS = {{ access_users | tojson }};
+</script>
+
+<script src="/{{ prefix }}/static/js/event_form.js"></script>
+
+{% endblock %}

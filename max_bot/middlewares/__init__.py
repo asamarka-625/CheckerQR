@@ -1,0 +1,1 @@
+from max_bot.middlewares.logging_middleware import LoggingMiddleware

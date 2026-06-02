@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/{{ prefix }}/static/css/event_detail.css">
+{% endblock %}
+
+{% block content %}
+<div class="event-page">
+    <div class="event-card">
+        <div class="event-header">
+            <div>
+                <h1 class="event-title">{{ title }}</h1>
+                <div class="event-dates">
+                    <div>
+                        <strong>Начало:</strong>
+                        {{ start_datetime.strftime('%d.%m.%Y %H:%M') }}
+                    </div>
+                    <div>
+                        <strong>Окончание:</strong>
+                        {{ end_datetime.strftime('%d.%m.%Y %H:%M') }}
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="primary-btn" id="openAddParticipantBtn">
+                Добавить участника
+            </button>
+        </div>
+    </div>
+
+    <div class="participants-section">
+        <div class="section-title">
+            Участники
+        </div>
+
+        {% if participants and participants|length > 0 %}
+            <div class="participants-list">
+                {% for participant in participants %}
+                    <div
+                        class="participant-card"
+                        data-participant-id="{{ participant.participant_id }}"
+                        data-full-name="{{ participant.full_name }}"
+                        data-extra-info="{{ participant.extra_info }}"
+                    >
+                        <div class="participant-left">
+
+                            <div class="participant-info">
+                                <div class="participant-name">
+                                    {{ participant.full_name }}
+                                </div>
+                            </div>
+
+                            <div class="participant-actions">
+                                <button
+                                    type="button"
+                                    class="secondary-btn edit-participant-btn"
+                                    data-participant-id="{{ participant.participant_id }}"
+                                    data-full-name="{{ participant.full_name }}"
+                                    data-extra-info="{{ participant.extra_info }}"
+                                >
+                                    Изменить
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="danger-btn delete-participant-btn"
+                                    data-participant-id="{{ participant.participant_id }}"
+                                >
+                                    Удалить
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <div
+                            class="participant-qr"
+                            data-qr-link="https://max.ru/{{ username_max_bot }}?start={{ participant.participant_id }}"
+                        ></div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                У этого мероприятия пока нет участников
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal hidden" id="participantModal">
+    <div class="modal-overlay" id="participantModalOverlay"></div>
+
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="participantModalTitle">Добавить участника</h2>
+            <button type="button" class="close-btn" id="closeParticipantModalBtn">×</button>
+        </div>
+
+        <form
+            id="participantForm"
+            class="modal-form"
+        >
+            <input
+                type="hidden"
+                id="participantId"
+            >
+
+            <div class="field">
+                <label for="participantFullName">
+                    ФИО
+                </label>
+
+                <input
+                    type="text"
+                    id="participantFullName"
+                    placeholder="Иванов Иван Иванович"
+                    required
+                >
+            </div>
+
+            <div class="field">
+                <label for="participantExtraInfo">
+                    Дополнительная информация
+                </label>
+
+                <textarea
+                    id="participantExtraInfo"
+                    placeholder="Любая дополнительная информация"
+                ></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="secondary-btn"
+                    id="cancelParticipantBtn"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    type="submit"
+                    class="primary-btn"
+                    id="saveParticipantBtn"
+                >
+                    Сохранить
+                </button>
+            </div>
+            <div id="participantMessage"></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal hidden" id="infoModal">
+    <div class="modal-overlay" id="infoModalOverlay"></div>
+
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Дополнительная информация</h2>
+            <button type="button" class="close-btn" id="closeInfoModalBtn">×</button>
+        </div>
+
+        <div id="infoModalContent"></div>
+    </div>
+</div>
+
+<div class="modal hidden" id="qrModal">
+    <div class="modal-overlay" id="qrModalOverlay"></div>
+
+    <div class="qr-modal-content">
+        <button class="close-btn qr-close-btn" id="closeQrModalBtn">×</button>
+
+        <div id="qrModalContainer"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.EVENT_PAGE_DATA = {
+        eventId: "{{ event_id }}"
+    };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/{{ prefix }}/static/js/event_detail.js"></script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}
+Создание мероприятия
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet"
+      href="/{{ prefix }}/static/css/event_form.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <h1>Создание мероприятия</h1>
+
+    <div class="field">
+        <label>Название мероприятия</label>
+        <input type="text"
+               id="title"
+               placeholder="Введите название">
+    </div>
+
+    <div class="field">
+        <label>Дата начала</label>
+        <input type="date" id="startDate">
+
+        <div class="time-row">
+            <input type="time" id="startTime" value="00:00">
+            <button type="button" id="startTimeBtn">Выбрать время</button>
+        </div>
+    </div>
+
+    <div class="field">
+        <label>Дата окончания</label>
+        <input type="date" id="endDate">
+
+        <div class="time-row">
+            <input type="time" id="endTime" value="00:00">
+            <button type="button" id="endTimeBtn">Выбрать время</button>
+        </div>
+    </div>
+
+    <div class="participants-header">
+        <h2>Участники</h2>
+
+        <button type="button"
+                class="add-user-btn"
+                id="addParticipantBtn">
+            + Добавить участника
+        </button>
+    </div>
+
+    <div id="participantsContainer"></div>
+
+    <div class="field">
+        <label>Доступ для пользователей</label>
+
+        <input
+            type="text"
+            id="userSearchInput"
+            placeholder="Поиск пользователей по имени"
+        />
+
+        <div id="userSearchResults" class="search-results"></div>
+
+        <div class="selected-users" id="selectedUsers"></div>
+    </div>
+
+    <button class="submit-btn"
+            id="saveBtn">
+        Создать мероприятие
+    </button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/{{ prefix }}/static/js/event_form.js"></script>
+<script src="/{{ prefix }}/static/js/participants.js"></script>
+{% endblock %}

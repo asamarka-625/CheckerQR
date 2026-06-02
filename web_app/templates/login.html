@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Вход{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/{{ prefix }}/static/css/login.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="login-wrapper">
+
+    <h1>Вход в систему</h1>
+
+    <form id="loginForm" class="login-form">
+        <label class="login-label">
+            Логин
+            <input type="text" id="username" required>
+        </label>
+
+        <label class="login-label">
+            Пароль
+            <input type="password" id="password" required>
+        </label>
+
+        <button type="submit" id="loginBtn">
+            Войти
+        </button>
+
+        <div id="error_login"></div>
+    </form>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/{{ prefix }}/static/js/login.js"></script>
+{% endblock %}
