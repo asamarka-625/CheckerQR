@@ -3,10 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web_app
-      # network: host
-      # args:
-      #  - http_proxy=http://127.0.0.1:10808
-      #  - https_proxy=http://127.0.0.1:10808
+      network: host
+      args:
+        - http_proxy=http://127.0.0.1:10808
+        - https_proxy=http://127.0.0.1:10808
     depends_on:
       db:
         condition: service_healthy
@@ -24,10 +24,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.max_bot
-      # network: host
-      # args:
-      #  - http_proxy=http://127.0.0.1:10808
-      #  - https_proxy=http://127.0.0.1:10808
+      network: host
+      args:
+        - http_proxy=http://127.0.0.1:10808
+        - https_proxy=http://127.0.0.1:10808
     depends_on:
       redis:
         condition: service_healthy
@@ -85,10 +85,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.alembic
-      # network: host
-      # args:
-      #  - http_proxy=http://127.0.0.1:10808
-      #  - https_proxy=http://127.0.0.1:10808
+      network: host
+      args:
+        - http_proxy=http://127.0.0.1:10808
+        - https_proxy=http://127.0.0.1:10808
     depends_on:
       db:
         condition: service_healthy

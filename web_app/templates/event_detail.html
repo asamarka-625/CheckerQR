@@ -42,6 +42,7 @@
                         class="participant-card"
                         data-participant-id="{{ participant.participant_id }}"
                         data-full-name="{{ participant.full_name }}"
+                        data-phone="{{ participant.phone }}"
                         data-extra-info="{{ participant.extra_info }}"
                     >
                         <div class="participant-left">
@@ -58,6 +59,7 @@
                                     class="secondary-btn edit-participant-btn"
                                     data-participant-id="{{ participant.participant_id }}"
                                     data-full-name="{{ participant.full_name }}"
+                                    data-phone="{{ participant.phone }}"
                                     data-extra-info="{{ participant.extra_info }}"
                                 >
                                     Изменить
@@ -118,6 +120,18 @@
                     placeholder="Иванов Иван Иванович"
                     required
                 >
+            </div>
+
+            <div class="field" id="participantPhoneField">
+                <label>Телефон</label>
+
+                <input
+                    type="tel"
+                    id="participantPhone"
+                    placeholder="+7 (999) 123-45-67"
+                />
+
+                <div class="field-error" id="participantPhoneError"></div>
             </div>
 
             <div class="field">

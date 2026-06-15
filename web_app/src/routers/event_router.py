@@ -127,6 +127,7 @@ async def add_participant(
     return await redis_service.add_participant(
         event_id=str(event_id),
         full_name=data.full_name,
+        phone=data.phone,
         extra_info=data.extra_info
     )
 

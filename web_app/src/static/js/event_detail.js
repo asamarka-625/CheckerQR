@@ -29,6 +29,35 @@ function setValidationError(
     }
 }
 
+function formatPhone(value) {
+    let digits = value.replace(/\D/g, '');
+
+    if (digits.startsWith('8')) {
+        digits = '7' + digits.slice(1);
+    }
+
+    if (!digits.startsWith('7')) {
+        digits = '7' + digits;
+    }
+
+    digits = digits.slice(0, 11);
+    digits = digits.slice(1); // убираем 7
+
+    let result = '+7';
+
+    if (digits.length > 0) result += ' (' + digits.slice(0, 3);
+    if (digits.length >= 3) result += ') ' + digits.slice(3, 6);
+    if (digits.length >= 6) result += '-' + digits.slice(6, 8);
+    if (digits.length >= 8) result += '-' + digits.slice(8, 10);
+
+    return result;
+}
+
+function isValidPhone(value) {
+    const digits = value.replace(/\D/g, '');
+    return digits.length === 11 && digits.startsWith('7');
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     const qrBlocks = document.querySelectorAll(".participant-qr");
@@ -97,10 +126,41 @@ document.addEventListener('DOMContentLoaded', function () {
     const closeInfoModalBtn = document.getElementById('closeInfoModalBtn');
     const infoModalContent = document.getElementById('infoModalContent');
 
-    function openInfoModal(fullName, extraInfo) {
+    const participantPhoneInput = document.getElementById('participantPhone');
+    const participantPhoneError = document.getElementById('participantPhoneError');
+    const participantPhoneField = document.getElementById('participantPhoneField');
+
+    participantPhoneInput.addEventListener('keydown', (e) => {
+        const cursor = e.target.selectionStart;
+
+        if (
+            (e.key === "Backspace" && cursor <= 3) ||
+            (e.key === "Delete" && cursor <= 2)
+        ) {
+            e.preventDefault();
+        }
+    });
+
+    participantPhoneInput.addEventListener('input', (e) => {
+        const formatted = formatPhone(e.target.value);
+        e.target.value = formatted;
+
+        if (!isValidPhone(formatted)) {
+            setValidationError(
+                participantPhoneInput,
+                participantPhoneError,
+                'Введите корректный номер телефона'
+            );
+        } else {
+            clearValidation(participantPhoneInput, participantPhoneError);
+        }
+    });
+
+    function openInfoModal(fullName, phone, extraInfo) {
         infoModalContent.innerHTML = `
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <div><strong>ФИО:</strong> ${fullName || '-'}</div>
+                <div><strong>Телефон:</strong> ${phone || '—'}</div>
                 <div><strong>Доп. информация:</strong><br>${extraInfo || '—'}</div>
             </div>
         `;
@@ -122,9 +182,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (e.target.closest('button')) return;
 
             const fullName = card.dataset.fullName;
+            const phone = card.dataset.phone;
             const extraInfo = card.dataset.extraInfo;
 
-            openInfoModal(fullName, extraInfo);
+            openInfoModal(
+                fullName,
+                phone ? formatPhone(phone) : '—',
+                extraInfo
+            );
         });
     });
 
@@ -136,6 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function openModal() {
         participantModal.classList.remove('hidden');
         participantMessage.innerHTML = '';
+        clearValidation(participantPhoneInput, participantPhoneError);
     }
 
     function closeModal() {
@@ -151,6 +217,8 @@ document.addEventListener('DOMContentLoaded', function () {
         clearValidation(participantExtraInfoInput, participantExtraInfoError);
 
         participantMessage.innerHTML = '';
+        participantPhoneInput.value = '';
+        clearValidation(participantPhoneInput, participantPhoneError);
     }
 
     participantFullNameInput.addEventListener('input', () => {
@@ -163,6 +231,9 @@ document.addEventListener('DOMContentLoaded', function () {
         participantIdInput.value = '';
         participantFullNameInput.value = '';
         participantExtraInfoInput.value = '';
+        participantPhoneInput.value = '';
+
+        participantPhoneField.style.display = 'block';
 
         participantModalTitle.textContent = 'Добавить участника';
         saveParticipantBtn.textContent = 'Создать';
@@ -180,6 +251,8 @@ document.addEventListener('DOMContentLoaded', function () {
             participantIdInput.value = btn.dataset.participantId;
             participantFullNameInput.value = btn.dataset.fullName;
             participantExtraInfoInput.value = btn.dataset.extraInfo || '';
+
+            participantPhoneField.style.display = 'none';
 
             participantModalTitle.textContent = 'Изменить участника';
             saveParticipantBtn.textContent = 'Сохранить';
@@ -233,6 +306,22 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         }
 
+        const phone = participantPhoneInput.value.trim();
+
+        if (!participantId) {
+            clearValidation(participantPhoneInput, participantPhoneError);
+
+            if (!isValidPhone(phone)) {
+                hasError = true;
+
+                setValidationError(
+                    participantPhoneInput,
+                    participantPhoneError,
+                    'Введите корректный номер телефона'
+                );
+            }
+        }
+
         if (hasError) {
             showMessage('Исправьте ошибки формы', 'error');
             return;
@@ -252,10 +341,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        full_name: fullName,
-                        extra_info: extraInfo
-                    })
+                    body: JSON.stringify(
+                        isEdit
+                            ? {
+                                full_name: fullName,
+                                extra_info: extraInfo
+                            }
+                            : {
+                                full_name: fullName,
+                                phone: phone,
+                                extra_info: extraInfo
+                            }
+                    )
                 }
             );
 

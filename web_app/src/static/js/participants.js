@@ -9,6 +9,8 @@ function setError(input, msg) {
         error.className = 'error';
 
         input.parentElement.appendChild(error);
+    } else {
+        error.style.display = "block";
     }
 
     input.classList.add('invalid');
@@ -22,7 +24,44 @@ function clearError(input) {
 
     if (error) {
         error.textContent = '';
+        error.style.display = "none";
     }
+}
+
+function formatPhone(value) {
+    let digits = value.replace(/\D/g, '');
+
+    // убираем первую 7 или 8, если она есть
+    if (digits.startsWith('8')) {
+        digits = '7' + digits.slice(1);
+    }
+
+    if (digits.startsWith('7')) {
+        digits = digits.slice(1); // убираем 7, она фиксирована
+
+        digits = digits.slice(0, 10);
+
+        let result = '+7';
+
+        if (digits.length > 0) result += ' (' + digits.slice(0, 3);
+        if (digits.length >= 3) result += ') ' + digits.slice(3, 6);
+        if (digits.length >= 6) result += '-' + digits.slice(6, 8);
+        if (digits.length >= 8) result += '-' + digits.slice(8, 10);
+
+        return result;
+    }
+
+    return '+7';
+}
+
+function validatePhone(value) {
+    const digits = value.replace(/\D/g, '');
+    return digits.length === 11 && digits.startsWith('7');
+}
+
+function isValidPhone(value) {
+    const digits = value.replace(/\D/g, '');
+    return digits.length === 11 && digits.startsWith('7');
 }
 
 function addParticipant(
@@ -49,6 +88,16 @@ function addParticipant(
         </div>
 
         <div class="field">
+            <label>Телефон</label>
+
+            <input
+                type="tel"
+                class="participant-phone"
+                value="+7 "
+                placeholder="+7 (999) 123-45-67">
+        </div>
+
+        <div class="field">
             <label>Дополнительная информация</label>
 
             <textarea
@@ -56,9 +105,7 @@ function addParticipant(
                 placeholder="Любая дополнительная информация">${extraInfo}</textarea>
         </div>
 
-        <button
-            type="button"
-            class="remove-btn">
+        <button type="button" class="remove-btn">
             Удалить
         </button>
     `;
@@ -76,6 +123,41 @@ function addParticipant(
         } else {
             clearError(nameInput);
         }
+    });
+
+    const phoneInput = div.querySelector('.participant-phone');
+
+    phoneInput.addEventListener('keydown', (e) => {
+        const value = e.target.value;
+        const cursor = e.target.selectionStart;
+
+        // нельзя удалить +7
+        if (
+            (e.key === "Backspace" && cursor <= 3) ||
+            (e.key === "Delete" && cursor <= 2)
+        ) {
+            e.preventDefault();
+        }
+    });
+    
+    phoneInput.addEventListener('input', (e) => {
+        const formatted = formatPhone(e.target.value);
+
+        // важно: сохраняем позицию курсора (простая версия)
+        const cursor = e.target.selectionStart;
+
+        e.target.value = formatted;
+
+        // валидация на каждый ввод
+        if (!isValidPhone(formatted)) {
+            setError(phoneInput, 'Введите корректный номер');
+        } else {
+            clearError(phoneInput);
+
+        }
+
+        // грубая стабилизация курсора
+        e.target.setSelectionRange(cursor, cursor);
     });
 
     div.querySelector('.remove-btn')
@@ -104,17 +186,21 @@ function getParticipants() {
                 '.participant-name'
             ).value.trim();
 
+        const phone =
+            card.querySelector('.participant-phone').value.trim();
+
         const extraInfo =
             card.querySelector(
                 '.participant-extra'
             ).value.trim();
 
-        if (!name) {
+        if (!name || !phone || !validatePhone(phone)) {
             return null;
         }
 
         result.push({
             full_name: name,
+            phone: phone,
             extra_info: extraInfo
         });
     }

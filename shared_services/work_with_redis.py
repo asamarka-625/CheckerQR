@@ -23,6 +23,7 @@ class RedisService:
 
         self.event_prefix = "event:"
         self.participant_prefix = "participant_prefix:"
+        self.participant_phone_prefix = "participant_phone:"
 
         self.user = "user:"
 
@@ -145,14 +146,10 @@ class RedisService:
             )
 
         async with self.redis.pipeline(transaction=True) as pipe:
-            # 2. подготовка участников
-            participant_keys = []
-
             for p in data.participants:
                 participant_id = str(uuid.uuid4())
                 participant_key = f"{self.participant_prefix}{participant_id}"
-
-                participant_keys.append(participant_id)
+                phone_key = f"{self.participant_phone_prefix}{event_id}:{p.phone}"
 
                 # HASH участника
                 pipe.hset(
@@ -161,14 +158,17 @@ class RedisService:
                         "event_id": event_id,
                         "event_title": title,
                         "full_name": p.full_name,
+                        "phone": p.phone,
                         "extra_info": p.extra_info
                     }
                 )
 
-                # TTL участника
+                pipe.set(phone_key, participant_id)
+
+                # TTL
+                pipe.expire(phone_key, ttl_seconds)
                 pipe.expire(participant_key, ttl_seconds)
 
-                # связь event → participant
                 pipe.sadd(participants_set_key, participant_id)
 
             # 3. HASH события
@@ -243,6 +243,7 @@ class RedisService:
                 participants.append({
                     "participant_id": pid,
                     "full_name": pdata.get("full_name"),
+                    "phone": pdata.get("phone"),
                     "extra_info": pdata.get("extra_info")
                 })
 
@@ -288,6 +289,7 @@ class RedisService:
         self,
         event_id: str,
         full_name: str,
+        phone: str,
         extra_info: str
     ):
         """Добавление участника в событие"""
@@ -317,6 +319,7 @@ class RedisService:
 
         participant_id = str(uuid.uuid4())
         participant_key = f"{self.participant_prefix}{participant_id}"
+        phone_key = f"{self.participant_phone_prefix}{event_id}:{phone}"
 
         async with self.redis.pipeline(transaction=True) as pipe:
             # participant HASH
@@ -326,14 +329,18 @@ class RedisService:
                     "event_id": event_id,
                     "event_title": event_data["title"],
                     "full_name": full_name,
+                    "phone": phone,
                     "extra_info": extra_info
                 }
             )
+
+            pipe.set(phone_key, participant_id, nx=True)
 
             # связь event → participant
             pipe.sadd(participants_set_key, participant_id)
 
             # TTL
+            pipe.expire(phone_key, ttl_seconds)
             pipe.expire(participant_key, ttl_seconds)
             pipe.expire(participants_set_key, ttl_seconds)
 
@@ -354,12 +361,14 @@ class RedisService:
         participants_set_key = f"{event_key}:participants"
         participant_key = f"{self.participant_prefix}{participant_id}"
 
-        # 1. проверка существования события
-        if not await self.redis.exists(event_key):
+        data = await self.redis.hgetall(participant_key)
+        if not data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Событие не найдено"
+                detail="Участник не найден"
             )
+
+        phone_key = f"{self.participant_phone_prefix}{event_id}:{data.get('phone', '0')}"
 
         async with self.redis.pipeline(transaction=True) as pipe:
             # удалить связь
@@ -367,6 +376,7 @@ class RedisService:
 
             # удалить сам participant
             pipe.delete(participant_key)
+            pipe.delete(phone_key)
 
             await pipe.execute()
 
@@ -491,14 +501,26 @@ class RedisService:
         # 2. получаем участников
         participant_ids = await self.redis.smembers(participants_key)
 
+        phones = {}
+
+        for pid in participant_ids:
+            key = f"{self.participant_prefix}{pid}"
+            data = await self.redis.hgetall(key)
+            if data:
+                phones[pid] = data.get("phone")
+
         async with self.redis.pipeline(transaction=True) as pipe:
             # 3. удалить участников
-            for pid in participant_ids:
+            for pid, phone in phones.items():
                 pipe.delete(f"{self.participant_prefix}{pid}")
 
+                if phone:
+                    phone_key = f"{self.participant_phone_prefix}{event_id}:{phone}"
+                    pipe.delete(phone_key)
+
             # 4. удалить event и set
-            pipe.delete(event_key)
             pipe.delete(participants_key)
+            pipe.delete(event_key)
 
             # 5. удалить из индекса
             pipe.srem(index_key, event_id)
@@ -682,3 +704,20 @@ class RedisService:
             "user_id": target_user_id,
             "status": "access_revoked"
         }
+
+    async def get_participant_by_phone(
+        self,
+        event_id: int,
+        phone: str
+    ):
+        phone_key = f"{self.participant_phone_prefix}{event_id}:{phone}"
+
+        participant_id = await self.redis.get(phone_key)
+
+        if not participant_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Участник не найден"
+            )
+
+        return await self.get_participant(participant_id)
