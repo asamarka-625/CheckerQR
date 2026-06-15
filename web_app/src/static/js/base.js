@@ -25,6 +25,16 @@ function hideMessage() {
     messageOverlay.classList.add('hidden');
 }
 
+function formatImportError(err) {
+    if (!err || !err.detail) return null;
+    const d = err.detail;
+    if (typeof d === 'string') return d;
+    if (d.errors && Array.isArray(d.errors)) {
+        return (d.message ? d.message + ':\n' : '') + d.errors.join('\n');
+    }
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const messageOverlay = document.getElementById('message-overlay');
 

@@ -1,7 +1,7 @@
 # Внешние зависимости
 from typing import Dict
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
 # Внутренние модули
 from models import User
@@ -9,7 +9,8 @@ from web_app.src.dependencies import (get_current_user_by_access_token, get_data
                                       verify_csrf_token)
 from web_app.src.schemas import (CreateEventRequest, UpdateEventRequest, AddParticipantRequest,
                                  UpdateParticipantRequest, AddAccessUserEventRequest)
-from web_app.src.utils import redis_service, ensure_user_access, ensure_user_event_access
+from web_app.src.utils import (redis_service, ensure_user_access, ensure_user_event_access,
+                               parse_participants_xlsx)
 
 
 router = APIRouter(
@@ -249,4 +250,73 @@ async def delete_access_user(
     return await redis_service.remove_access_user(
         event_id=str(event_id),
         target_user_id=target_user_id
+    )
+
+
+@router.post(
+    path="/parse-participants",
+    response_class=JSONResponse,
+    summary="Распарсить участников из xlsx (для формы создания)"
+)
+async def parse_participants(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user_by_access_token),
+    token_data: Dict[str, str] = Depends(get_data_by_refresh_token),
+    csrf_user_id: str = Depends(verify_csrf_token)
+):
+    ensure_user_access(
+        user=current_user,
+        token_data=token_data,
+        user_id=csrf_user_id
+    )
+
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ожидается файл .xlsx"
+        )
+
+    content = await file.read()
+    participants = parse_participants_xlsx(content)
+
+    return [p.model_dump() for p in participants]
+
+
+@router.post(
+    path="/{event_id}/participants/import",
+    response_class=JSONResponse,
+    summary="Импорт участников из xlsx в существующее мероприятие"
+)
+async def import_participants(
+    event_id: UUID,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user_by_access_token),
+    token_data: Dict[str, str] = Depends(get_data_by_refresh_token),
+    csrf_user_id: str = Depends(verify_csrf_token)
+):
+    ensure_user_access(
+        user=current_user,
+        token_data=token_data,
+        user_id=csrf_user_id
+    )
+
+    await ensure_user_event_access(
+        event_id=event_id,
+        user_id=current_user.id
+    )
+
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ожидается файл .xlsx"
+        )
+
+    content = await file.read()
+    participants = parse_participants_xlsx(content)
+
+    return await redis_service.add_participants_bulk(
+        event_id=str(event_id),
+        participants=[p.model_dump() for p in participants]
     )

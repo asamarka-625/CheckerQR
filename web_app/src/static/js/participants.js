@@ -1,5 +1,80 @@
 let participantIndex = 0;
 
+const PARTICIPANTS_PAGE_SIZE = 20;
+let participantsCurrentPage = 1;
+
+function getParticipantCards() {
+    return Array.from(
+        document.getElementById('participantsContainer')
+            .querySelectorAll('.participant-card')
+    );
+}
+
+function renderParticipantsPagination() {
+    const cards = getParticipantCards();
+    const total = cards.length;
+    const totalPages = Math.max(1, Math.ceil(total / PARTICIPANTS_PAGE_SIZE));
+
+    if (participantsCurrentPage > totalPages) participantsCurrentPage = totalPages;
+    if (participantsCurrentPage < 1) participantsCurrentPage = 1;
+
+    const start = (participantsCurrentPage - 1) * PARTICIPANTS_PAGE_SIZE;
+    const end = start + PARTICIPANTS_PAGE_SIZE;
+
+    // показываем только текущую страницу, остальные оставляем в DOM скрытыми
+    cards.forEach((card, i) => {
+        card.style.display = (i >= start && i < end) ? '' : 'none';
+    });
+
+    const controls = document.getElementById('participantsPagination');
+    if (!controls) return;
+
+    if (totalPages <= 1) {
+        controls.innerHTML = '';
+        controls.style.display = 'none';
+        return;
+    }
+
+    controls.style.display = 'flex';
+    controls.innerHTML = '';
+
+    const prev = document.createElement('button');
+    prev.type = 'button';
+    prev.className = 'page-btn';
+    prev.textContent = '← Назад';
+    prev.disabled = participantsCurrentPage <= 1;
+    prev.addEventListener('click', () => {
+        participantsCurrentPage--;
+        renderParticipantsPagination();
+    });
+
+    const info = document.createElement('span');
+    info.className = 'page-info';
+    info.textContent =
+        `Страница ${participantsCurrentPage} из ${totalPages} · участников: ${total}`;
+
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'page-btn';
+    next.textContent = 'Вперёд →';
+    next.disabled = participantsCurrentPage >= totalPages;
+    next.addEventListener('click', () => {
+        participantsCurrentPage++;
+        renderParticipantsPagination();
+    });
+
+    controls.appendChild(prev);
+    controls.appendChild(info);
+    controls.appendChild(next);
+}
+
+function goToParticipantCard(card) {
+    const idx = getParticipantCards().indexOf(card);
+    if (idx === -1) return;
+    participantsCurrentPage = Math.floor(idx / PARTICIPANTS_PAGE_SIZE) + 1;
+    renderParticipantsPagination();
+}
+
 function setError(input, msg) {
     let error =
         input.parentElement.querySelector('.error');
@@ -66,7 +141,8 @@ function isValidPhone(value) {
 
 function addParticipant(
     fullName = '',
-    extraInfo = ''
+    extraInfo = '',
+    phone = ''
 ) {
     participantIndex++;
     const div = document.createElement('div');
@@ -93,7 +169,7 @@ function addParticipant(
             <input
                 type="tel"
                 class="participant-phone"
-                value="+7 "
+                value="${phone ? formatPhone(phone) : '+7 '}"
                 placeholder="+7 (999) 123-45-67">
         </div>
 
@@ -163,6 +239,7 @@ function addParticipant(
     div.querySelector('.remove-btn')
         .addEventListener('click', () => {
             div.remove();
+            renderParticipantsPagination();
         });
 
     const container =
@@ -171,6 +248,8 @@ function addParticipant(
         );
 
     container.appendChild(div);
+
+    return div;
 }
 
 function getParticipants() {
@@ -182,19 +261,16 @@ function getParticipants() {
     const result = [];
     for (const card of cards) {
         const name =
-            card.querySelector(
-                '.participant-name'
-            ).value.trim();
+            card.querySelector('.participant-name').value.trim();
 
         const phone =
             card.querySelector('.participant-phone').value.trim();
 
         const extraInfo =
-            card.querySelector(
-                '.participant-extra'
-            ).value.trim();
+            card.querySelector('.participant-extra').value.trim();
 
         if (!name || !phone || !validatePhone(phone)) {
+            goToParticipantCard(card);
             return null;
         }
 
@@ -217,10 +293,52 @@ document.addEventListener(
             );
 
         if (addBtn) {
-            addBtn.addEventListener(
-                'click',
-                () => addParticipant()
-            );
+            addBtn.addEventListener('click', () => {
+                addParticipant();
+                // переходим на последнюю страницу, чтобы показать новую карточку
+                const total = getParticipantCards().length;
+                participantsCurrentPage =
+                    Math.ceil(total / PARTICIPANTS_PAGE_SIZE);
+                renderParticipantsPagination();
+            });
+        }
+
+        const importBtn = document.getElementById('importParticipantsBtn');
+        const importInput = document.getElementById('importParticipantsInput');
+
+        if (importBtn && importInput) {
+            importBtn.addEventListener('click', () => importInput.click());
+
+            importInput.addEventListener('change', async () => {
+                const file = importInput.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await apiRequest(
+                        '/api/v1/event/parse-participants',
+                        { method: 'POST', body: formData }
+                    );
+
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => null);
+                        alert(formatImportError(err) || 'Не удалось обработать файл');
+                        return;
+                    }
+
+                    const participants = await response.json();
+                    participants.forEach(p =>
+                        addParticipant(p.full_name, p.extra_info || '', p.phone)
+                    );
+
+                } catch {
+                    alert('Ошибка загрузки файла');
+                } finally {
+                    importInput.value = '';
+                }
+            });
         }
 
         const existing =
@@ -230,12 +348,12 @@ document.addEventListener(
             existing.forEach(p => {
                 addParticipant(
                     p.full_name,
-                    p.extra_info || ''
+                    p.extra_info || '',
+                    p.phone
                 );
             });
-
-        } else {
-            addParticipant();
         }
+
+        renderParticipantsPagination();
     }
 );

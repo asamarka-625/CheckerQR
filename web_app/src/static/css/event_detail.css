@@ -293,3 +293,37 @@ textarea {
   min-height: 90px;
   resize: vertical;
 }
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: #1677ff;
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.page-btn:hover {
+    opacity: 0.9;
+}
+
+.page-btn.disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.page-info {
+    color: #555;
+    font-size: 14px;
+}

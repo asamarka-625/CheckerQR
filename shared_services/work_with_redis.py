@@ -263,6 +263,74 @@ class RedisService:
             "access_users": list(set(access_users))
         }
 
+    async def get_event_with_participants_paginated(
+            self,
+            event_id: str,
+            page: int = 1,
+            page_size: int = 20
+    ) -> Dict[str, Any]:
+        """Событие + страница участников (порядок стабилизирован сортировкой)"""
+        event_key = f"{self.event_prefix}{event_id}"
+        participants_set_key = f"{event_key}:participants"
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.hgetall(event_key)
+            pipe.smembers(participants_set_key)
+            event_data, participant_ids = await pipe.execute()
+
+        if not event_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Событие не найдено"
+            )
+
+        # SET не упорядочен — сортируем для корректной пагинации
+        participant_ids = sorted(participant_ids)
+        total = len(participant_ids)
+
+        if page_size < 1:
+            page_size = 20
+
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        page = max(1, min(page, total_pages))
+
+        offset = (page - 1) * page_size
+        page_ids = participant_ids[offset:offset + page_size]
+
+        participants = []
+        if page_ids:
+            async with self.redis.pipeline(transaction=True) as pipe:
+                for pid in page_ids:
+                    pipe.hgetall(f"{self.participant_prefix}{pid}")
+                participants_raw = await pipe.execute()
+
+            for pid, pdata in zip(page_ids, participants_raw):
+                if pdata:  # защита от протухших ключей
+                    participants.append({
+                        "participant_id": pid,
+                        "full_name": pdata.get("full_name"),
+                        "phone": pdata.get("phone"),
+                        "extra_info": pdata.get("extra_info")
+                    })
+
+        access_users = await self.redis.smembers(f"{event_key}:access_users")
+        access_users = [int(uid) for uid in access_users]
+
+        return {
+            "event_id": event_id,
+            "title": event_data.get("title"),
+            "start_datetime": datetime.fromisoformat(event_data["start_datetime"])
+            if event_data.get("start_datetime") else None,
+            "end_datetime": datetime.fromisoformat(event_data["end_datetime"])
+            if event_data.get("end_datetime") else None,
+            "participants": participants,
+            "access_users": list(set(access_users)),
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+            "total_participants": total
+        }
+
     async def get_participant(
         self,
         participant_id: str
@@ -349,6 +417,68 @@ class RedisService:
         return {
             "participant_id": participant_id,
             "status": "added"
+        }
+
+    async def add_participants_bulk(
+        self,
+        event_id: str,
+        participants: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Массовое добавление участников в существующее событие"""
+        event_key = f"{self.event_prefix}{event_id}"
+        participants_set_key = f"{event_key}:participants"
+
+        event_data = await self.redis.hgetall(event_key)
+        if not event_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Событие не найдено"
+            )
+
+        end_datetime = datetime.fromisoformat(event_data["end_datetime"])
+        ttl_seconds = int(
+            (end_datetime - datetime.now(timezone.utc)).total_seconds()
+        )
+
+        if ttl_seconds <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Событие уже завершено"
+            )
+
+        created_ids: List[str] = []
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            for p in participants:
+                participant_id = str(uuid.uuid4())
+                participant_key = f"{self.participant_prefix}{participant_id}"
+                phone = p["phone"]
+                phone_key = f"{self.participant_phone_prefix}{event_id}:{phone}"
+
+                pipe.hset(
+                    participant_key,
+                    mapping={
+                        "event_id": event_id,
+                        "event_title": event_data["title"],
+                        "full_name": p["full_name"],
+                        "phone": phone,
+                        "extra_info": p.get("extra_info") or ""
+                    }
+                )
+                pipe.set(phone_key, participant_id, nx=True)
+                pipe.sadd(participants_set_key, participant_id)
+                pipe.expire(phone_key, ttl_seconds)
+                pipe.expire(participant_key, ttl_seconds)
+
+                created_ids.append(participant_id)
+
+            pipe.expire(participants_set_key, ttl_seconds)
+            await pipe.execute()
+
+        return {
+            "status": "added",
+            "count": len(created_ids),
+            "participant_ids": created_ids
         }
 
     async def remove_participant(
@@ -707,7 +837,7 @@ class RedisService:
 
     async def get_participant_by_phone(
         self,
-        event_id: int,
+        event_id: str,
         phone: str
     ):
         phone_key = f"{self.participant_phone_prefix}{event_id}:{phone}"
@@ -721,3 +851,34 @@ class RedisService:
             )
 
         return await self.get_participant(participant_id)
+
+    async def get_all_events(self) -> List[Dict[str, str]]:
+        """Список всех мероприятий всех пользователей: event_id + event_title"""
+        keys: List[str] = []
+
+        async for key in self.redis.scan_iter(
+                match=f"{self.event_prefix}*",
+                count=200
+        ):
+            event_id = key[len(self.event_prefix):]
+            if ":" not in event_id:
+                keys.append(key)
+
+        if not keys:
+            return []
+
+        async with self.redis.pipeline(transaction=False) as pipe:
+            for key in keys:
+                pipe.hget(key, "title")
+            titles = await pipe.execute()
+
+        events = []
+        for key, title in zip(keys, titles):
+            if title is None:
+                continue
+            events.append({
+                "event_id": key[len(self.event_prefix):],
+                "event_title": title
+            })
+
+        return events

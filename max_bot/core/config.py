@@ -9,7 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Конфиг приложения
 class Config(BaseSettings):
     MAX_BOT_TOKEN: str = Field(alias="MAX_BOT_TOKEN")
-
+    USERNAME_MAX_BOT: str = Field(alias="USERNAME_MAX_BOT")
+    
     PROXY: Optional[str] = Field(alias="PROXY")
 
     redis_url: str = Field(alias="REDIS_URL")

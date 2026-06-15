@@ -205,3 +205,38 @@ input[type="time"] {
     font-size: 13px;
     margin-top: 6px;
 }
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.pagination .page-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: #1677ff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.pagination .page-btn:hover:not(:disabled) {
+    background: #0958d9;
+}
+
+.pagination .page-btn:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.pagination .page-info {
+    color: #555;
+    font-size: 14px;
+}

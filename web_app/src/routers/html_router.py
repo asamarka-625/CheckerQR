@@ -1,7 +1,7 @@
 # Внешние зависимости
 from typing import Dict
 from uuid import UUID
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, Query
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 # Внутренние модули
@@ -91,6 +91,7 @@ async def events_page(
 async def event_detail_page(
     request: Request,
     event_id: UUID,
+    page: int = Query(1, ge=1),
     token_data: Dict[str, str] = Depends(get_data_by_refresh_token)
 ):
     await ensure_user_event_access(
@@ -98,8 +99,10 @@ async def event_detail_page(
         user_id=int(token_data["user_id"])
     )
 
-    event_detail = await redis_service.get_event_with_participants(
-        event_id=str(event_id)
+    event_detail = await redis_service.get_event_with_participants_paginated(
+        event_id=str(event_id),
+        page=page,
+        page_size=20
     )
 
     context = {

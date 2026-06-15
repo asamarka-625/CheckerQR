@@ -99,6 +99,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const eventId = window.EVENT_PAGE_DATA.eventId;
 
+    const importBtn = document.getElementById('importParticipantsBtn');
+    const importInput = document.getElementById('importParticipantsInput');
+
+    if (importBtn && importInput) {
+        importBtn.addEventListener('click', () => importInput.click());
+
+        importInput.addEventListener('change', async () => {
+            const file = importInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            importBtn.disabled = true;
+
+            try {
+                const response = await apiRequest(
+                    `/api/v1/event/${eventId}/participants/import`,
+                    { method: 'POST', body: formData }
+                );
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => null);
+                    alert(formatImportError(err) || 'Не удалось импортировать участников');
+                    return;
+                }
+
+                location.reload();
+
+            } catch {
+                alert('Ошибка загрузки файла');
+            } finally {
+                importBtn.disabled = false;
+                importInput.value = '';
+            }
+        });
+    }
+
     const participantModal = document.getElementById('participantModal');
     const participantModalOverlay = document.getElementById('participantModalOverlay');
     const participantModalTitle = document.getElementById('participantModalTitle');

@@ -29,20 +29,20 @@ async function silentRefresh() {
 async function apiRequest(url, options = {}) {
     if (!accessToken) await silentRefresh();
 
-    const headers = {
-        'Content-Type': 'application/json',
+    const isFormData = options.body instanceof FormData;
+
+    const buildHeaders = () => ({
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         'Authorization': `Bearer ${accessToken}`,
         'X-CSRF-Token': csrfToken,
         ...options.headers
-    };
+    });
 
-    let response = await fetch(`/${PREFIX}${url}`, { ...options, headers });
+    let response = await fetch(`/${PREFIX}${url}`, { ...options, headers: buildHeaders() });
 
     if (response.status === 401) {
         await silentRefresh();
-        headers['Authorization'] = `Bearer ${accessToken}`;
-        headers['X-CSRF-Token'] = csrfToken;
-        response = await fetch(url, { ...options, headers });
+        response = await fetch(`/${PREFIX}${url}`, { ...options, headers: buildHeaders() });
     }
 
     return response;

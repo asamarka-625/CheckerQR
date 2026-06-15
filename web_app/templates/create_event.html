@@ -14,6 +14,12 @@
 <div class="card">
     <h1>Создание мероприятия</h1>
 
+    <button class="submit-btn"
+            id="saveBtn"
+            style="margin-top:0; margin-bottom:24px;">
+        Создать мероприятие
+    </button>
+
     <div class="field">
         <label>Название мероприятия</label>
         <input type="text"
@@ -44,14 +50,27 @@
     <div class="participants-header">
         <h2>Участники</h2>
 
-        <button type="button"
-                class="add-user-btn"
-                id="addParticipantBtn">
-            + Добавить участника
-        </button>
+        <div style="display:flex; gap:8px;">
+            <a class="add-user-btn"
+               style="text-decoration:none; display:inline-flex; align-items:center;"
+               href="/{{ prefix }}/static/files/participants_template.xlsx"
+               download>
+                Скачать шаблон
+            </a>
+            <input type="file" id="importParticipantsInput" accept=".xlsx" style="display:none">
+            <button type="button" class="add-user-btn" id="importParticipantsBtn">
+                Импорт из Excel
+            </button>
+            <button type="button"
+                    class="add-user-btn"
+                    id="addParticipantBtn">
+                + Добавить участника
+            </button>
+        </div>
     </div>
 
     <div id="participantsContainer"></div>
+    <div id="participantsPagination" class="pagination" style="display:none;"></div>
 
     <div class="field">
         <label>Доступ для пользователей</label>
@@ -66,11 +85,6 @@
 
         <div class="selected-users" id="selectedUsers"></div>
     </div>
-
-    <button class="submit-btn"
-            id="saveBtn">
-        Создать мероприятие
-    </button>
 </div>
 
 {% endblock %}

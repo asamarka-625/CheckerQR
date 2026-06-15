@@ -24,15 +24,27 @@
                 </div>
             </div>
 
-            <button type="button" class="primary-btn" id="openAddParticipantBtn">
-                Добавить участника
-            </button>
+            <div style="display:flex; gap:8px;">
+                <a class="secondary-btn"
+                   style="text-decoration:none; display:inline-flex; align-items:center;"
+                   href="/{{ prefix }}/static/files/participants_template.xlsx"
+                   download>
+                    Скачать шаблон
+                </a>
+                <input type="file" id="importParticipantsInput" accept=".xlsx" style="display:none">
+                <button type="button" class="secondary-btn" id="importParticipantsBtn">
+                    Импорт из Excel
+                </button>
+                <button type="button" class="primary-btn" id="openAddParticipantBtn">
+                    Добавить участника
+                </button>
+            </div>
         </div>
     </div>
 
     <div class="participants-section">
         <div class="section-title">
-            Участники
+            Участники{% if total_participants %} ({{ total_participants }}){% endif %}
         </div>
 
         {% if participants and participants|length > 0 %}
@@ -87,6 +99,32 @@
             <div class="empty-state">
                 У этого мероприятия пока нет участников
             </div>
+        {% endif %}
+
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+                <a class="page-btn"
+                   href="/{{ prefix }}/event/{{ event_id }}?page={{ page - 1 }}">
+                    ← Назад
+                </a>
+            {% else %}
+                <span class="page-btn disabled">← Назад</span>
+            {% endif %}
+
+            <span class="page-info">
+                Страница {{ page }} из {{ total_pages }}
+            </span>
+
+            {% if page < total_pages %}
+                <a class="page-btn"
+                   href="/{{ prefix }}/event/{{ event_id }}?page={{ page + 1 }}">
+                    Вперёд →
+                </a>
+            {% else %}
+                <span class="page-btn disabled">Вперёд →</span>
+            {% endif %}
+        </div>
         {% endif %}
     </div>
 </div>

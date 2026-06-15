@@ -19,8 +19,8 @@ services:
     restart: no # unless-stopped
 
   max_bot:
-    # extra_hosts:
-    #  - "host.docker.internal:host-gateway"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     build:
       context: .
       dockerfile: Dockerfile.max_bot
