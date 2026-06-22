@@ -1,5 +1,6 @@
 # Внешние зависимости
 from typing import List
+import secrets
 from io import BytesIO
 from openpyxl import load_workbook
 from pydantic import ValidationError
@@ -10,6 +11,9 @@ from web_app.src.schemas.participant import Participant
 
 # Подсказки, по которым определяем строку-заголовок
 _HEADER_HINTS = ("фио", "имя", "телефон", "номер", "phone", "name", "информац")
+
+# Алфавит без неоднозначных символов (нет 0, O, 1, I, L)
+ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # 31 символ
 
 
 def _cell_to_str(value) -> str:
@@ -40,6 +44,12 @@ _TYPE_MESSAGES = {
 }
 
 _PHONE_MESSAGE = "неверный формат номера (нужно 11 цифр, начиная с 7)"
+
+
+# Генератор случайных кодов
+def generate_code(length: int = 6) -> str:
+    raw = "".join(secrets.choice(ALPHABET) for _ in range(length))
+    return f"{raw[:3]}-{raw[3:]}"
 
 
 def _translate_error(err) -> str:
@@ -93,11 +103,11 @@ def parse_participants_xlsx(file_bytes: bytes) -> List[Participant]:
 
     for idx, row in enumerate(rows[start:], start=start + 1):
         full_name = _cell_to_str(row[0]) if len(row) > 0 else ""
-        phone = _cell_to_str(row[1]) if len(row) > 1 else ""
-        extra_info = _cell_to_str(row[2]) if len(row) > 2 else ""
+        phone = generate_code()
+        extra_info = _cell_to_str(row[1]) if len(row) > 1 else ""
 
         # пропускаем полностью пустые строки
-        if not full_name and not phone and not extra_info:
+        if not full_name and not phone:
             continue
 
         try:

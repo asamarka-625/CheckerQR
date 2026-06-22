@@ -15,3 +15,15 @@ def create_events_inline(events: List[Dict[str, str]]):
         )
 
     return builder.as_markup()
+
+
+# Создаем инлайн кнопку назад
+def create_back_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.row(CallbackButton(
+        text="🔙 Назад",
+        payload="back"
+    ))
+
+    return builder.as_markup()

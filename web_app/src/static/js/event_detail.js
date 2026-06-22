@@ -29,35 +29,6 @@ function setValidationError(
     }
 }
 
-function formatPhone(value) {
-    let digits = value.replace(/\D/g, '');
-
-    if (digits.startsWith('8')) {
-        digits = '7' + digits.slice(1);
-    }
-
-    if (!digits.startsWith('7')) {
-        digits = '7' + digits;
-    }
-
-    digits = digits.slice(0, 11);
-    digits = digits.slice(1); // убираем 7
-
-    let result = '+7';
-
-    if (digits.length > 0) result += ' (' + digits.slice(0, 3);
-    if (digits.length >= 3) result += ') ' + digits.slice(3, 6);
-    if (digits.length >= 6) result += '-' + digits.slice(6, 8);
-    if (digits.length >= 8) result += '-' + digits.slice(8, 10);
-
-    return result;
-}
-
-function isValidPhone(value) {
-    const digits = value.replace(/\D/g, '');
-    return digits.length === 11 && digits.startsWith('7');
-}
-
 document.addEventListener('DOMContentLoaded', function () {
 
     const qrBlocks = document.querySelectorAll(".participant-qr");
@@ -180,18 +151,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     participantPhoneInput.addEventListener('input', (e) => {
-        const formatted = formatPhone(e.target.value);
         e.target.value = formatted;
-
-        if (!isValidPhone(formatted)) {
-            setValidationError(
-                participantPhoneInput,
-                participantPhoneError,
-                'Введите корректный номер телефона'
-            );
-        } else {
-            clearValidation(participantPhoneInput, participantPhoneError);
-        }
+        clearValidation(participantPhoneInput, participantPhoneError);
     });
 
     function openInfoModal(fullName, phone, extraInfo) {
@@ -225,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             openInfoModal(
                 fullName,
-                phone ? formatPhone(phone) : '—',
+                phone,
                 extraInfo
             );
         });
@@ -348,16 +309,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!participantId) {
             clearValidation(participantPhoneInput, participantPhoneError);
-
-            if (!isValidPhone(phone)) {
-                hasError = true;
-
-                setValidationError(
-                    participantPhoneInput,
-                    participantPhoneError,
-                    'Введите корректный номер телефона'
-                );
-            }
         }
 
         if (hasError) {

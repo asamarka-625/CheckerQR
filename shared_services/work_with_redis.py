@@ -264,10 +264,10 @@ class RedisService:
         }
 
     async def get_event_with_participants_paginated(
-            self,
-            event_id: str,
-            page: int = 1,
-            page_size: int = 20
+        self,
+        event_id: str,
+        page: int = 1,
+        page_size: int = 20
     ) -> Dict[str, Any]:
         """Событие + страница участников (порядок стабилизирован сортировкой)"""
         event_key = f"{self.event_prefix}{event_id}"
@@ -462,7 +462,7 @@ class RedisService:
                         "event_title": event_data["title"],
                         "full_name": p["full_name"],
                         "phone": phone,
-                        "extra_info": p.get("extra_info") or ""
+                        "extra_info": p.get("extra_info", "")
                     }
                 )
                 pipe.set(phone_key, participant_id, nx=True)

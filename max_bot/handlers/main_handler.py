@@ -4,11 +4,12 @@ from maxapi import Router, F
 from maxapi.types import BotStarted, MessageCreated, MessageCallback, InputMediaBuffer
 from maxapi.enums.upload_type import UploadType
 from maxapi.context import StatesGroup, State, MemoryContext
+from maxapi.filters.command import CommandStart
 from fastapi import HTTPException
 # Внутренние модули
-from max_bot.utils import redis_service, normalize_phone, generate_qr_bytes
+from max_bot.utils import redis_service, generate_qr_bytes
 from max_bot.core import cfg
-from max_bot.keyboards import create_main_keyboard, create_events_inline
+from max_bot.keyboards import create_main_keyboard, create_events_inline, create_back_keyboard
 
 
 router = Router()
@@ -22,7 +23,7 @@ class SelectEvent(StatesGroup):
 async def bot_started(event: BotStarted, context: MemoryContext):
     await context.clear()
 
-    attachments = []
+    attachments = [create_back_keyboard()]
 
     try:
         if event.payload:
@@ -41,10 +42,10 @@ async def bot_started(event: BotStarted, context: MemoryContext):
                 "👋 Добро пожаловать в бот верификации участников!\n\n"
                 "Здесь вы можете получить QR-код для прохода на мероприятие.\n\n"
                 "1️⃣ Нажмите «Мероприятия 🎟» и выберите своё мероприятие\n"
-                "2️⃣ Отправьте номер телефона, на который вы зарегистрированы\n\n"
+                "2️⃣ Отправьте свой уникальный код, на который вы зарегистрированы\n\n"
                 "Если вы есть в списке участников — я пришлю вам QR-код для прохода 🎫"
             )
-            attachments.append(create_main_keyboard())
+            attachments = [create_main_keyboard()]
 
     except HTTPException:
         text_answer = "Участник не найден"
@@ -57,6 +58,27 @@ async def bot_started(event: BotStarted, context: MemoryContext):
         chat_id=event.chat_id,
         text=text_answer,
         attachments=attachments
+    )
+
+
+@router.message_created(CommandStart())
+async def command_start(
+    event: MessageCreated | MessageCallback,
+    context: MemoryContext
+):
+    await context.clear()
+
+    text_answer = (
+        "👋 Добро пожаловать в бот верификации участников!\n\n"
+        "Здесь вы можете получить QR-код для прохода на мероприятие.\n\n"
+        "1️⃣ Нажмите «Мероприятия 🎟» и выберите своё мероприятие\n"
+        "2️⃣ Отправьте свой уникальный код, на который вы зарегистрированы\n\n"
+        "Если вы есть в списке участников — я пришлю вам QR-код для прохода 🎫"
+    )
+
+    await event.message.answer(
+        text=text_answer,
+        attachments=[create_main_keyboard()]
     )
 
 
@@ -77,6 +99,12 @@ async def get_events_command(event: MessageCreated, context: MemoryContext):
     )
 
 
+# Назад
+@router.message_callback(F.callback.payload == "back")
+async def back_event_callback_run(event: MessageCallback, context: MemoryContext):
+    await command_start(event=event, context=context)
+
+
 # Выбор мероприятия
 @router.message_callback(F.callback.payload.startswith("e:"))
 async def select_event_callback_run(event: MessageCallback, context: MemoryContext):
@@ -94,12 +122,13 @@ async def select_event_callback_run(event: MessageCallback, context: MemoryConte
     await event.message.answer(
         text=(
             f"Вы выбрали мероприятие: {event_title}\n\n"
-            "Напишите номер телефона в формате: +7 (999) 123-45-67"
-        )
+            "Напишите код. Пример, как должен выглядеть код: K7M-9PX"
+        ),
+        attachments=[create_back_keyboard()]
     )
 
 
-# Поиск участника по номеру телефона
+# Поиск участника по коду
 @router.message_created(SelectEvent.current_event, F.message.body)
 async def participant_by_phone_command(event: MessageCreated, context: MemoryContext):
     data = await context.get_data()
@@ -109,14 +138,15 @@ async def participant_by_phone_command(event: MessageCreated, context: MemoryCon
         return
 
     # 1. проверка формата
-    phone = normalize_phone(event.message.body.text)
+    phone = event.message.body.text.strip().upper()
 
-    if phone is None:
+    if len(phone) != 7 or "-" not in phone:
         await event.message.answer(
             text=(
-                "❌ Неверный формат номера.\n\n"
-                "Отправьте номер из 11 цифр, например: +7 (999) 123-45-67"
-            )
+                "❌ Неверный формат кода.\n\n"
+                "Отправьте код. Пример, как должен выглядеть код: K7M-9PX"
+            ),
+            attachments=[create_back_keyboard()]
         )
         return  # остаёмся в состоянии, ждём корректный ввод
 
@@ -131,14 +161,18 @@ async def participant_by_phone_command(event: MessageCreated, context: MemoryCon
         await event.message.answer(
             text=(
                 "😔 Вы не найдены в списке участников этого мероприятия.\n\n"
-                "Проверьте номер и попробуйте снова, либо обратитесь к организатору."
-            )
+                "Проверьте код и попробуйте снова, либо обратитесь к организатору."
+            ),
+            attachments=[create_back_keyboard()]
         )
         return
 
     except Exception as e:
         logging.error(f"Unexpected error (phone lookup): {e}")
-        await event.message.answer(text="Произошла ошибка, попробуйте позже")
+        await event.message.answer(
+            text="Произошла ошибка, попробуйте позже",
+            attachments=[create_back_keyboard()]
+        )
         return
 
     # 3. найден — формируем и отправляем QR
@@ -151,7 +185,8 @@ async def participant_by_phone_command(event: MessageCreated, context: MemoryCon
     caption = (
         f"✅ Вы в списке участников!\n\n"
         f"📝 Мероприятие: {participant['event_title']}\n"
-        f"👤 {participant['full_name']}\n\n"
+        f"👤 {participant['full_name']}\n"
+        f"ℹ️ Дополнительная информация: {participant.get('extra_info', '')}\n\n"
         f"🎫 Покажите этот QR-код на входе."
     )
 
@@ -163,4 +198,7 @@ async def participant_by_phone_command(event: MessageCreated, context: MemoryCon
         type=UploadType.IMAGE
     )
 
-    await event.message.answer(text=caption, attachments=[media])
+    await event.message.answer(
+        text=caption,
+        attachments=[media, create_back_keyboard()]
+    )

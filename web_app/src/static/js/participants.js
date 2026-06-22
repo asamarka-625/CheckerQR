@@ -103,42 +103,6 @@ function clearError(input) {
     }
 }
 
-function formatPhone(value) {
-    let digits = value.replace(/\D/g, '');
-
-    // убираем первую 7 или 8, если она есть
-    if (digits.startsWith('8')) {
-        digits = '7' + digits.slice(1);
-    }
-
-    if (digits.startsWith('7')) {
-        digits = digits.slice(1); // убираем 7, она фиксирована
-
-        digits = digits.slice(0, 10);
-
-        let result = '+7';
-
-        if (digits.length > 0) result += ' (' + digits.slice(0, 3);
-        if (digits.length >= 3) result += ') ' + digits.slice(3, 6);
-        if (digits.length >= 6) result += '-' + digits.slice(6, 8);
-        if (digits.length >= 8) result += '-' + digits.slice(8, 10);
-
-        return result;
-    }
-
-    return '+7';
-}
-
-function validatePhone(value) {
-    const digits = value.replace(/\D/g, '');
-    return digits.length === 11 && digits.startsWith('7');
-}
-
-function isValidPhone(value) {
-    const digits = value.replace(/\D/g, '');
-    return digits.length === 11 && digits.startsWith('7');
-}
-
 function addParticipant(
     fullName = '',
     extraInfo = '',
@@ -169,7 +133,7 @@ function addParticipant(
             <input
                 type="tel"
                 class="participant-phone"
-                value="${phone ? formatPhone(phone) : '+7 '}"
+                value=""
                 placeholder="+7 (999) 123-45-67">
         </div>
 
@@ -217,20 +181,10 @@ function addParticipant(
     });
     
     phoneInput.addEventListener('input', (e) => {
-        const formatted = formatPhone(e.target.value);
+        const formatted = e.target.value;
 
         // важно: сохраняем позицию курсора (простая версия)
         const cursor = e.target.selectionStart;
-
-        e.target.value = formatted;
-
-        // валидация на каждый ввод
-        if (!isValidPhone(formatted)) {
-            setError(phoneInput, 'Введите корректный номер');
-        } else {
-            clearError(phoneInput);
-
-        }
 
         // грубая стабилизация курсора
         e.target.setSelectionRange(cursor, cursor);
@@ -269,7 +223,7 @@ function getParticipants() {
         const extraInfo =
             card.querySelector('.participant-extra').value.trim();
 
-        if (!name || !phone || !validatePhone(phone)) {
+        if (!name || !phone) {
             goToParticipantCard(card);
             return null;
         }
