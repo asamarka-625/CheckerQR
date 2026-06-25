@@ -1,1 +1,3 @@
 from shared_services.work_with_redis import RedisService
+from shared_services.code import generate_code, is_valid_code
+from shared_services.qr import generate_qr_bytes

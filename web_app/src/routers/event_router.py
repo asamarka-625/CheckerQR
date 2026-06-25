@@ -1,8 +1,11 @@
 # Внешние зависимости
 from typing import Dict
 from uuid import UUID
+from io import BytesIO
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.responses import StreamingResponse
 # Внутренние модули
 from models import User
 from web_app.src.dependencies import (get_current_user_by_access_token, get_data_by_refresh_token,
@@ -10,7 +13,7 @@ from web_app.src.dependencies import (get_current_user_by_access_token, get_data
 from web_app.src.schemas import (CreateEventRequest, UpdateEventRequest, AddParticipantRequest,
                                  UpdateParticipantRequest, AddAccessUserEventRequest)
 from web_app.src.utils import (redis_service, ensure_user_access, ensure_user_event_access,
-                               parse_participants_xlsx)
+                               parse_participants_xlsx, build_participants_xlsx)
 
 
 router = APIRouter(
@@ -128,7 +131,7 @@ async def add_participant(
     return await redis_service.add_participant(
         event_id=str(event_id),
         full_name=data.full_name,
-        phone=data.phone,
+        code=data.code,
         extra_info=data.extra_info
     )
 
@@ -319,4 +322,44 @@ async def import_participants(
     return await redis_service.add_participants_bulk(
         event_id=str(event_id),
         participants=[p.model_dump() for p in participants]
+    )
+
+
+@router.get(
+    "/{event_id}/participants/export",
+    summary="Скачать участников в xlsx (с QR-кодами)"
+)
+async def export_participants(
+    event_id: UUID,
+    token_data: Dict[str, str] = Depends(get_data_by_refresh_token)
+):
+    await ensure_user_event_access(
+        event_id=event_id,
+        user_id=int(token_data["user_id"])
+    )
+
+    event = await redis_service.get_event_with_participants(
+        event_id=str(event_id)
+    )
+
+    xlsx_bytes = build_participants_xlsx(
+        event_title=event.get("title") or "Мероприятие",
+        participants=event.get("participants", [])
+    )
+
+    utf8_name = quote(f"{event.get('title') or 'event'} - участники.xlsx")
+    headers = {
+        "Content-Disposition": (
+            f'attachment; filename="participants.xlsx"; '
+            f"filename*=UTF-8''{utf8_name}"
+        )
+    }
+
+    return StreamingResponse(
+        BytesIO(xlsx_bytes),
+        media_type=(
+            "application/vnd.openxmlformats-officedocument"
+            ".spreadsheetml.sheet"
+        ),
+        headers=headers
     )

@@ -135,31 +135,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const closeInfoModalBtn = document.getElementById('closeInfoModalBtn');
     const infoModalContent = document.getElementById('infoModalContent');
 
-    const participantPhoneInput = document.getElementById('participantPhone');
-    const participantPhoneError = document.getElementById('participantPhoneError');
-    const participantPhoneField = document.getElementById('participantPhoneField');
-
-    participantPhoneInput.addEventListener('keydown', (e) => {
-        const cursor = e.target.selectionStart;
-
-        if (
-            (e.key === "Backspace" && cursor <= 3) ||
-            (e.key === "Delete" && cursor <= 2)
-        ) {
-            e.preventDefault();
-        }
-    });
-
-    participantPhoneInput.addEventListener('input', (e) => {
-        e.target.value = formatted;
-        clearValidation(participantPhoneInput, participantPhoneError);
-    });
-
-    function openInfoModal(fullName, phone, extraInfo) {
+    function openInfoModal(fullName, code, extraInfo) {
         infoModalContent.innerHTML = `
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <div><strong>ФИО:</strong> ${fullName || '-'}</div>
-                <div><strong>Телефон:</strong> ${phone || '—'}</div>
+                <div><strong>Код:</strong> ${code || '—'}</div>
                 <div><strong>Доп. информация:</strong><br>${extraInfo || '—'}</div>
             </div>
         `;
@@ -181,12 +161,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (e.target.closest('button')) return;
 
             const fullName = card.dataset.fullName;
-            const phone = card.dataset.phone;
+            const code = card.dataset.code;
             const extraInfo = card.dataset.extraInfo;
 
             openInfoModal(
                 fullName,
-                phone,
+                code,
                 extraInfo
             );
         });
@@ -200,7 +180,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function openModal() {
         participantModal.classList.remove('hidden');
         participantMessage.innerHTML = '';
-        clearValidation(participantPhoneInput, participantPhoneError);
     }
 
     function closeModal() {
@@ -216,8 +195,6 @@ document.addEventListener('DOMContentLoaded', function () {
         clearValidation(participantExtraInfoInput, participantExtraInfoError);
 
         participantMessage.innerHTML = '';
-        participantPhoneInput.value = '';
-        clearValidation(participantPhoneInput, participantPhoneError);
     }
 
     participantFullNameInput.addEventListener('input', () => {
@@ -230,9 +207,6 @@ document.addEventListener('DOMContentLoaded', function () {
         participantIdInput.value = '';
         participantFullNameInput.value = '';
         participantExtraInfoInput.value = '';
-        participantPhoneInput.value = '';
-
-        participantPhoneField.style.display = 'block';
 
         participantModalTitle.textContent = 'Добавить участника';
         saveParticipantBtn.textContent = 'Создать';
@@ -250,8 +224,6 @@ document.addEventListener('DOMContentLoaded', function () {
             participantIdInput.value = btn.dataset.participantId;
             participantFullNameInput.value = btn.dataset.fullName;
             participantExtraInfoInput.value = btn.dataset.extraInfo || '';
-
-            participantPhoneField.style.display = 'none';
 
             participantModalTitle.textContent = 'Изменить участника';
             saveParticipantBtn.textContent = 'Сохранить';
@@ -305,12 +277,6 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         }
 
-        const phone = participantPhoneInput.value.trim();
-
-        if (!participantId) {
-            clearValidation(participantPhoneInput, participantPhoneError);
-        }
-
         if (hasError) {
             showMessage('Исправьте ошибки формы', 'error');
             return;
@@ -321,6 +287,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const isEdit = Boolean(participantId);
 
+            // код участника генерируется на сервере, из формы не передаётся
             const response = await apiRequest(
                 isEdit
                     ? `/api/v1/event/${eventId}/participant/${participantId}`
@@ -330,18 +297,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(
-                        isEdit
-                            ? {
-                                full_name: fullName,
-                                extra_info: extraInfo
-                            }
-                            : {
-                                full_name: fullName,
-                                phone: phone,
-                                extra_info: extraInfo
-                            }
-                    )
+                    body: JSON.stringify({
+                        full_name: fullName,
+                        extra_info: extraInfo
+                    })
                 }
             );
 

@@ -1,32 +1,27 @@
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.btn-delete');
-        if (!btn) return;
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.btn-delete').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();   // не даём сработать переходу по карточке
 
-        e.preventDefault();
+            const eventId = btn.dataset.eventId;
 
-        const eventId = btn.dataset.eventId;
-        if (!confirm('Удалить мероприятие?')) {
-            return;
-        }
+            if (!confirm('Удалить мероприятие?')) return;
 
-        try {
-            const response = await apiRequest(
-                `/api/v1/event/${eventId}`,
-                {
-                    method: 'DELETE'
-                }
-            );
+            try {
+                const response = await apiRequest(
+                    `/api/v1/event/${eventId}`,
+                    { method: 'DELETE' }
+                );
 
-            if (!response.ok) {
-                throw new Error();
+                if (!response.ok) throw new Error();
+
+                // удаляем карточку без перезагрузки
+                btn.closest('.event-card')?.remove();
+
+            } catch {
+                alert('Ошибка удаления мероприятия');
             }
-
-            // удаляем карточку без перезагрузки
-            btn.closest('.event-card')?.remove();
-
-        } catch {
-            alert('Ошибка удаления мероприятия');
-        }
+        });
     });
 });

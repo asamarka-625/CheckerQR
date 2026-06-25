@@ -38,6 +38,12 @@
                 <button type="button" class="primary-btn" id="openAddParticipantBtn">
                     Добавить участника
                 </button>
+                <a class="secondary-btn"
+                   style="text-decoration:none; display:inline-flex; align-items:center;"
+                   href="/{{ prefix }}/api/v1/event/{{ event_id }}/participants/export"
+                   download>
+                    Скачать участников
+                </a>
             </div>
         </div>
     </div>
@@ -54,7 +60,7 @@
                         class="participant-card"
                         data-participant-id="{{ participant.participant_id }}"
                         data-full-name="{{ participant.full_name }}"
-                        data-phone="{{ participant.phone }}"
+                        data-code="{{ participant.code }}"
                         data-extra-info="{{ participant.extra_info }}"
                     >
                         <div class="participant-left">
@@ -62,6 +68,9 @@
                             <div class="participant-info">
                                 <div class="participant-name">
                                     {{ participant.full_name }}
+                                </div>
+                                <div class="participant-extra-info">
+                                    Код: {{ participant.code }}
                                 </div>
                             </div>
 
@@ -71,7 +80,7 @@
                                     class="secondary-btn edit-participant-btn"
                                     data-participant-id="{{ participant.participant_id }}"
                                     data-full-name="{{ participant.full_name }}"
-                                    data-phone="{{ participant.phone }}"
+                                    data-code="{{ participant.code }}"
                                     data-extra-info="{{ participant.extra_info }}"
                                 >
                                     Изменить
@@ -158,18 +167,6 @@
                     placeholder="Иванов Иван Иванович"
                     required
                 >
-            </div>
-
-            <div class="field" id="participantPhoneField">
-                <label>Телефон</label>
-
-                <input
-                    type="tel"
-                    id="participantPhone"
-                    placeholder=""
-                />
-
-                <div class="field-error" id="participantPhoneError"></div>
             </div>
 
             <div class="field">

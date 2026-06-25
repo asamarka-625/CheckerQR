@@ -106,11 +106,15 @@ function clearError(input) {
 function addParticipant(
     fullName = '',
     extraInfo = '',
-    phone = ''
+    code = ''
 ) {
     participantIndex++;
     const div = document.createElement('div');
     div.className = 'participant-card';
+
+    // код не вводится вручную: либо приходит из xlsx (3-й столбец),
+    // либо генерируется на сервере. Везём его скрыто.
+    div.dataset.code = code || '';
 
     div.innerHTML = `
         <div class="participant-title">
@@ -125,16 +129,6 @@ function addParticipant(
                 class="participant-name"
                 value="${fullName}"
                 placeholder="Введите ФИО">
-        </div>
-
-        <div class="field">
-            <label>Телефон</label>
-
-            <input
-                type="tel"
-                class="participant-phone"
-                value=""
-                placeholder="+7 (999) 123-45-67">
         </div>
 
         <div class="field">
@@ -165,31 +159,6 @@ function addParticipant(
         }
     });
 
-    const phoneInput = div.querySelector('.participant-phone');
-
-    phoneInput.addEventListener('keydown', (e) => {
-        const value = e.target.value;
-        const cursor = e.target.selectionStart;
-
-        // нельзя удалить +7
-        if (
-            (e.key === "Backspace" && cursor <= 3) ||
-            (e.key === "Delete" && cursor <= 2)
-        ) {
-            e.preventDefault();
-        }
-    });
-    
-    phoneInput.addEventListener('input', (e) => {
-        const formatted = e.target.value;
-
-        // важно: сохраняем позицию курсора (простая версия)
-        const cursor = e.target.selectionStart;
-
-        // грубая стабилизация курсора
-        e.target.setSelectionRange(cursor, cursor);
-    });
-
     div.querySelector('.remove-btn')
         .addEventListener('click', () => {
             div.remove();
@@ -217,21 +186,20 @@ function getParticipants() {
         const name =
             card.querySelector('.participant-name').value.trim();
 
-        const phone =
-            card.querySelector('.participant-phone').value.trim();
-
         const extraInfo =
             card.querySelector('.participant-extra').value.trim();
 
-        if (!name || !phone) {
+        const code = card.dataset.code || '';
+
+        if (!name) {
             goToParticipantCard(card);
             return null;
         }
 
         result.push({
             full_name: name,
-            phone: phone,
-            extra_info: extraInfo
+            extra_info: extraInfo,
+            code: code  // пусто -> сервер сгенерирует; валидный -> сохранит как есть
         });
     }
 
@@ -284,7 +252,7 @@ document.addEventListener(
 
                     const participants = await response.json();
                     participants.forEach(p =>
-                        addParticipant(p.full_name, p.extra_info || '', p.phone)
+                        addParticipant(p.full_name, p.extra_info || '', p.code || '')
                     );
 
                 } catch {
@@ -303,7 +271,7 @@ document.addEventListener(
                 addParticipant(
                     p.full_name,
                     p.extra_info || '',
-                    p.phone
+                    p.code || ''
                 );
             });
         }

@@ -1,23 +1,29 @@
-# Внешние зависимости
 from typing import List
-import secrets
 from io import BytesIO
 from openpyxl import load_workbook
 from pydantic import ValidationError
 from fastapi import HTTPException, status
-# Внутренние модули
+
 from web_app.src.schemas.participant import Participant
 
 
-# Подсказки, по которым определяем строку-заголовок
-_HEADER_HINTS = ("фио", "имя", "телефон", "номер", "phone", "name", "информац")
+_HEADER_HINTS = ("фио", "имя", "код", "code", "name", "информац")
 
-# Алфавит без неоднозначных символов (нет 0, O, 1, I, L)
-ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # 31 символ
+_FIELD_LABELS = {
+    "full_name": "ФИО",
+    "extra_info": "Доп. информация",
+    "code": "Код",
+}
+
+_TYPE_MESSAGES = {
+    "missing": "обязательное поле не заполнено",
+    "string_type": "значение должно быть строкой",
+    "string_too_short": "значение слишком короткое",
+    "string_too_long": "значение слишком длинное",
+}
 
 
 def _cell_to_str(value) -> str:
-    """Приводим значение ячейки к строке (телефоны часто хранятся числом)"""
     if value is None:
         return ""
     if isinstance(value, float) and value.is_integer():
@@ -30,43 +36,11 @@ def _looks_like_header(row) -> bool:
     return any(hint in joined for hint in _HEADER_HINTS)
 
 
-_FIELD_LABELS = {
-    "full_name": "ФИО",
-    "phone": "Номер телефона",
-    "extra_info": "Доп. информация",
-}
-
-_TYPE_MESSAGES = {
-    "missing": "обязательное поле не заполнено",
-    "string_type": "значение должно быть строкой",
-    "string_too_short": "значение слишком короткое",
-    "string_too_long": "значение слишком длинное",
-}
-
-_PHONE_MESSAGE = "неверный формат номера (нужно 11 цифр, начиная с 7)"
-
-
-# Генератор случайных кодов
-def generate_code(length: int = 6) -> str:
-    raw = "".join(secrets.choice(ALPHABET) for _ in range(length))
-    return f"{raw[:3]}-{raw[3:]}"
-
-
 def _translate_error(err) -> str:
     loc = err.get("loc", ())
     field = loc[0] if loc else None
     label = _FIELD_LABELS.get(field, str(field) if field else "Поле")
-
-    err_type = err.get("type", "")
-
-    if field == "phone":
-        # покрывает и min_length, и ValueError из normalize_phone
-        msg = _PHONE_MESSAGE
-    elif err_type in _TYPE_MESSAGES:
-        msg = _TYPE_MESSAGES[err_type]
-    else:
-        msg = "некорректное значение"
-
+    msg = _TYPE_MESSAGES.get(err.get("type", ""), "некорректное значение")
     return f"{label}: {msg}"
 
 
@@ -75,14 +49,11 @@ def _format_validation_error(e: ValidationError) -> str:
 
 
 def parse_participants_xlsx(file_bytes: bytes) -> List[Participant]:
-    """Парсинг xlsx с участниками. Колонки: ФИО, номер, доп. информация."""
+    """Парсинг xlsx. Колонки: ФИО, доп. информация, код (опционально)."""
     try:
         wb = load_workbook(filename=BytesIO(file_bytes), read_only=True, data_only=True)
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Не удалось прочитать xlsx файл"
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Не удалось прочитать xlsx файл")
 
     try:
         ws = wb.active
@@ -91,10 +62,7 @@ def parse_participants_xlsx(file_bytes: bytes) -> List[Participant]:
         wb.close()
 
     if not rows:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Файл пуст"
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Файл пуст")
 
     start = 1 if _looks_like_header(rows[0]) else 0
 
@@ -103,19 +71,18 @@ def parse_participants_xlsx(file_bytes: bytes) -> List[Participant]:
 
     for idx, row in enumerate(rows[start:], start=start + 1):
         full_name = _cell_to_str(row[0]) if len(row) > 0 else ""
-        phone = generate_code()
         extra_info = _cell_to_str(row[1]) if len(row) > 1 else ""
+        code_raw = _cell_to_str(row[2]) if len(row) > 2 else ""
 
-        # пропускаем полностью пустые строки
-        if not full_name and not phone:
+        if not full_name:
             continue
 
         try:
             participants.append(
                 Participant(
                     full_name=full_name,
-                    phone=phone,
-                    extra_info=extra_info
+                    extra_info=extra_info,
+                    code=code_raw or None,  # валидатор сам решит: взять или сгенерировать
                 )
             )
         except ValidationError as e:
@@ -123,14 +90,10 @@ def parse_participants_xlsx(file_bytes: bytes) -> List[Participant]:
 
     if errors:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"message": "Ошибки в файле", "errors": errors}
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"message": "Ошибки в файле", "errors": errors},
         )
-
     if not participants:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="В файле нет участников"
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="В файле нет участников")
 
     return participants

@@ -7,6 +7,7 @@ from maxapi.context import StatesGroup, State, MemoryContext
 from maxapi.filters.command import CommandStart
 from fastapi import HTTPException
 # Внутренние модули
+from shared_services import is_valid_code
 from max_bot.utils import redis_service, generate_qr_bytes
 from max_bot.core import cfg
 from max_bot.keyboards import create_main_keyboard, create_events_inline, create_back_keyboard
@@ -122,7 +123,7 @@ async def select_event_callback_run(event: MessageCallback, context: MemoryConte
     await event.message.answer(
         text=(
             f"Вы выбрали мероприятие: {event_title}\n\n"
-            "Напишите код. Пример, как должен выглядеть код: K7M-9PX"
+            "Напишите код. Пример, как должен выглядеть код: K7MB-9PXG"
         ),
         attachments=[create_back_keyboard()]
     )
@@ -130,33 +131,26 @@ async def select_event_callback_run(event: MessageCallback, context: MemoryConte
 
 # Поиск участника по коду
 @router.message_created(SelectEvent.current_event, F.message.body)
-async def participant_by_phone_command(event: MessageCreated, context: MemoryContext):
+async def participant_by_code_command(event: MessageCreated, context: MemoryContext):
     data = await context.get_data()
     event_id = data.get("event_id")
-
     if event_id is None:
         return
 
-    # 1. проверка формата
-    phone = event.message.body.text.strip().upper()
+    code = event.message.body.text.strip().upper()
 
-    if len(phone) != 7 or "-" not in phone:
+    if not is_valid_code(code):
         await event.message.answer(
-            text=(
-                "❌ Неверный формат кода.\n\n"
-                "Отправьте код. Пример, как должен выглядеть код: K7M-9PX"
-            ),
-            attachments=[create_back_keyboard()]
+            text="❌ Неверный формат кода.\n\nОтправьте код. Пример: K7MB-9PXG",
+            attachments=[create_back_keyboard()],
         )
-        return  # остаёмся в состоянии, ждём корректный ввод
+        return
 
-    # 2. поиск участника
     try:
-        participant = await redis_service.get_participant_by_phone(
+        participant = await redis_service.get_participant_by_code(
             event_id=event_id,
-            phone=phone
+            code=code,
         )
-
     except HTTPException:
         await event.message.answer(
             text=(
