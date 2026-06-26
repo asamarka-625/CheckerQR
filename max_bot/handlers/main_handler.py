@@ -10,7 +10,8 @@ from fastapi import HTTPException
 from shared_services import is_valid_code
 from max_bot.utils import redis_service, generate_qr_bytes
 from max_bot.core import cfg
-from max_bot.keyboards import create_main_keyboard, create_events_inline, create_back_keyboard
+from max_bot.keyboards import (create_main_keyboard, create_events_inline,create_back_keyboard,
+                               create_verified_keyboard)
 
 
 router = Router()
@@ -37,6 +38,7 @@ async def bot_started(event: BotStarted, context: MemoryContext):
                 f"👤 Участник: {participant_data['full_name']}\n"
                 f"ℹ️ Инфо: {participant_data['extra_info']}"
             )
+            attachments = [create_verified_keyboard()]
 
         else:
             text_answer = (
@@ -104,6 +106,13 @@ async def get_events_command(event: MessageCreated, context: MemoryContext):
 @router.message_callback(F.callback.payload == "back")
 async def back_event_callback_run(event: MessageCallback, context: MemoryContext):
     await command_start(event=event, context=context)
+
+
+# Проверено
+@router.message_callback(F.callback.payload == "verified")
+async def verified_event_callback_run(event: MessageCallback, context: MemoryContext):
+    await context.clear()
+    await event.message.delete()
 
 
 # Выбор мероприятия

@@ -17,6 +17,18 @@ def create_events_inline(events: List[Dict[str, str]]):
     return builder.as_markup()
 
 
+# Создаем инлайн кнопку "Проверено"
+def create_verified_keyboard():
+    builder = InlineKeyboardBuilder()
+
+    builder.row(CallbackButton(
+        text="✅ Проверено",
+        payload="verified"
+    ))
+
+    return builder.as_markup()
+
+
 # Создаем инлайн кнопку назад
 def create_back_keyboard():
     builder = InlineKeyboardBuilder()
