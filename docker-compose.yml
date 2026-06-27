@@ -35,6 +35,20 @@ services:
       - ./logs/:/app/logs/
     restart: no # unless-stopped
 
+  max_bot_reserve:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build:
+      context: .
+      dockerfile: Dockerfile.max_bot_reserve
+      network: host
+      args:
+        - http_proxy=http://127.0.0.1:10808
+        - https_proxy=http://127.0.0.1:10808
+    volumes:
+      - ./logs/:/app/logs/
+    restart: no # unless-stopped
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped

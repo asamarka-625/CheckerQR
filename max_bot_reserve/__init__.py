@@ -1,0 +1,1 @@
+from max_bot_reserve.main import main_run

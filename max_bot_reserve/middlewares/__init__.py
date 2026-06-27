@@ -1,0 +1,1 @@
+from max_bot_reserve.middlewares.logging_middleware import LoggingMiddleware

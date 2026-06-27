@@ -1,0 +1,1 @@
+from max_bot_reserve.handlers.main_handler import router as main_router
